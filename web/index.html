@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CleanYourTV — plan simulator (local POC)</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: #08090b; color: #e8ecf1; padding: 32px 20px 80px;
+      }
+      main { max-width: 860px; margin: 0 auto; }
+      h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.02em; }
+      .sub { color: #8b95a3; margin: 0 0 28px; font-size: 14px; }
+      .bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+      button {
+        font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+        background: #14181e; color: #cfd7e2; border: 1px solid #232a33;
+      }
+      button[aria-pressed="true"] { background: #e8ecf1; color: #08090b; border-color: #e8ecf1; }
+      textarea {
+        width: 100%; min-height: 150px; padding: 12px; border-radius: 12px; font: 13px/1.6 ui-monospace, monospace;
+        background: #0e1216; color: #cfd7e2; border: 1px solid #232a33; resize: vertical;
+      }
+      .count { display: flex; gap: 24px; margin: 26px 0 14px; font-size: 14px; color: #8b95a3; }
+      .count b { color: #e8ecf1; font-size: 22px; display: block; line-height: 1.2; }
+      ul { list-style: none; padding: 0; margin: 0; border: 1px solid #1b222b; border-radius: 14px; overflow: hidden; }
+      li {
+        display: grid; grid-template-columns: 74px 1fr; gap: 12px; padding: 12px 16px;
+        border-bottom: 1px solid #141a21; align-items: baseline;
+      }
+      li:last-child { border-bottom: 0; }
+      .act { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+      .disable .act { color: #ff8f6b; }
+      .skip .act { color: #6f7b8a; }
+      code { font: 12.5px/1.5 ui-monospace, monospace; color: #e8ecf1; }
+      .why { display: block; color: #8b95a3; font-size: 13px; margin-top: 2px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>CleanYourTV — plan simulator</h1>
+      <p class="sub">
+        A stand-in for a TV. It reads the same line-per-package list the project's
+        <code>tools/disable.sh</code> reads, and shows the decision each line gets — including two
+        protections the real tool has. No TV, no ADB, nothing changed.
+      </p>
+
+      <div class="bar" id="lists"></div>
+      <textarea id="editor" spellcheck="false"></textarea>
+
+      <div class="count">
+        <div><b id="disabled">0</b>would be disabled</div>
+        <div><b id="skipped">0</b>skipped</div>
+        <div><b id="total">0</b>lines in the list</div>
+      </div>
+
+      <ul id="steps"></ul>
+    </main>
+
+    <script>
+      const editor = document.getElementById("editor");
+      const listsEl = document.getElementById("lists");
+      const stepsEl = document.getElementById("steps");
+
+      function render(plan) {
+        const disabled = plan.steps.filter((s) => s.action === "disable").length;
+        document.getElementById("disabled").textContent = disabled;
+        document.getElementById("skipped").textContent = plan.steps.length - disabled;
+        document.getElementById("total").textContent = plan.steps.length;
+        stepsEl.innerHTML = plan.steps
+          .map(
+            (s) =>
+              `<li class="${s.action}"><span class="act">${s.action}</span><span><code>${s.id}</code><span class="why">${s.why}</span></span></li>`
+          )
+          .join("");
+      }
+
+      async function planFromText(text) {
+        const res = await fetch("/api/custom", { method: "POST", body: text });
+        render(await res.json());
+      }
+
+      async function loadList(name) {
+        const res = await fetch(`/api/plan?list=${encodeURIComponent(name)}`);
+        const plan = await res.json();
+        const txt = await fetch(`/lists/${name}.txt`).then((r) => r.text());
+        editor.value = txt;
+        render(plan);
+        [...listsEl.children].forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.name === name)));
+      }
+
+      editor.addEventListener("input", () => planFromText(editor.value));
+
+      fetch("/api/lists")
+        .then((r) => r.json())
+        .then((names) => {
+          listsEl.innerHTML = names
+            .map((n) => `<button data-name="${n}">${n}</button>`)
+            .join("");
+          listsEl.addEventListener("click", (e) => {
+            const name = e.target.dataset && e.target.dataset.name;
+            if (name) loadList(name);
+          });
+          loadList(names[0]);
+        });
+    </script>
+  </body>
+</html>

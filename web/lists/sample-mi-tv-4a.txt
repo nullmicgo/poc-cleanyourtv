@@ -1,0 +1,6 @@
+﻿# sample debloat list, same shape as examples/<tv>/debloat.txt
+com.google.android.tv.ads
+com.google.android.apps.youtube.tv.recommendations
+com.tcl.tvrecommendation
+com.google.android.tvlauncher.crashreporter
+com.google.android.apps.tv.launcherx

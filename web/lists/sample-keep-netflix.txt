@@ -1,0 +1,4 @@
+﻿# same list with two packages we want to keep
+com.google.android.tv.ads
+com.netflix.mediaclient
+com.google.android.gms

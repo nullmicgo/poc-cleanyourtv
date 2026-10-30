@@ -1,0 +1,9 @@
+{
+  "name": "poc-cleanyourtv",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local POC: a read-only stand-in for what CleanYourTV does to a TV, driven by its real debloat list format.",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
